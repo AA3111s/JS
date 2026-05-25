@@ -782,5 +782,109 @@ alert( doNothing() === undefined ); // true
 - "create…" – create something,
 - "check…" – check something and return a boolean, etc.
 
-## Function Expressions
+### Function Expressions
 
+- allows us to create a new function in the middle of any expression.
+
+```javascript
+let sayHi = function() {
+  alert( "Hello" );
+};
+```
+
+- we can omit giving a name to function expressions, they are called anonymous functions
+
+### Callback functions
+
+```javascript
+function ask(question, yes, no) {
+  if (confirm(question)) yes()
+  else no();
+}
+
+function showOk() {
+  alert( "You agreed." );
+}
+
+function showCancel() {
+  alert( "You canceled the execution." );
+}
+
+// usage: functions showOk, showCancel are passed as arguments to ask
+ask("Do you agree?", showOk, showCancel);
+```
+
+- The arguments showOk and showCancel of ask are called callback functions or just callbacks.
+
+```javascript
+function ask(question, yes, no) {
+  if (confirm(question)) yes()
+  else no();
+}
+
+ask(
+    "Do you agree?",
+    function() { alert("You agreed."); },
+    function() { alert("You canceled the execution."); }
+    );
+```
+
+- A Function Expression is created when the execution reaches it and is usable only from that moment.
+
+- A Function Declaration can be called earlier than it is defined. (global functions)
+
+```javascript
+let age = prompt("What is your age?", 18);
+
+let welcome = (age < 18) ?
+  function() { alert("Hello!"); } :
+  function() { alert("Greetings!"); };
+
+welcome(); // ok now
+```
+
+Scope differences between Function Declarations and Function Expressions through above example
+
+## Arrow functions, the basics
+
+```javascript
+let func = (arg1, arg2, ..., argN) => expression;```
+
+This creates a function func that accepts arguments arg1..argN, then evaluates the expression on the right side with their use and returns its result.
+
+In other words, it’s the shorter version of:
+
+```javascript
+let func = function(arg1, arg2, ..., argN) {
+  return expression;
+};
+```
+
+- arrow functions could be used just like function expressions
+
+```javascript
+let age = prompt("What is your age?", 18);
+
+let welcome = (age < 18) ?
+  () => alert('Hello!') :
+  () => alert("Greetings!");
+
+welcome();
+```
+
+- when there's no arguments, we should use empty parentheses
+
+### Multiline arrow functions
+
+If we need more than one expression, we can put them into curly braces {...}, just like in a regular function. In this case, we should use an explicit return if we want to return something.
+
+```javascript
+let sum = (a, b) => {
+  let result = a + b;
+  return result;
+};
+```
+
+## Javascript specials
+
+- revision of the basics
