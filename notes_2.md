@@ -1,4 +1,4 @@
-# Javascript by [javascript.info](https://javascript.info/)
+# Javascript by [javascript.info](https://javascript.info/) notes
 
 ## Code Quality
 
