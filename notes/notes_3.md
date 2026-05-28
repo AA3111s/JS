@@ -484,3 +484,234 @@ BUT WHY WOULD YOU DO THAT
 
 ## Garbage collection
 
+- memory management is automatic in JavaScript. Memory is allocated when objects are created and freed when they are not needed anymore. The process of freeing memory is called garbage collection.
+
+### Reachability
+
+- reachability is the main concept of memory management in JS
+
+- “reachable” values are those that are accessible or usable somehow
+
+- There’s a base set of inherently reachable values, that cannot be deleted for obvious reasons.
+  for instance:
+
+  - The currently executing function, its local variables and parameters.
+  - Other functions on the current chain of nested calls, their local variables and parameters.
+  - Global variables.
+
+// (there are some other, internal ones as well)
+
+These values are called roots.
+
+Any other value is considered reachable if it’s reachable from a root by a reference or   by a chain of references.
+
+For instance, if there’s an object in a global variable, and that object has a property referencing another object, that object is considered reachable. And those that it references are also reachable. Detailed examples to follow.
+
+- there’s a background process in the JS engine that is called garbage collector. It monitors all objects and removes those that have become unreachable.
+
+![simple example of garbage collector](./images/seogc.png)
+
+- if instead the object was referenced by two variables and one was set to ```null```, then the object would still have been reachable and thus not removed by the garbage collector
+
+![interlinked object example](./images/ioe.png)
+
+![incoming outgoing reference example](./images/iore.png)
+
+#### Unreachable islands
+
+- it is possible that the whole island of interlinked objects becomes unreachable and is removed from the memory.
+
+- the source object is the same as above. Then:
+
+```javascript
+family = null;
+```
+
+- John and Ann are still linked, both have incoming references
+
+- the former "family" object has been unlinked from the root, there’s no reference to it any more, so the whole island becomes unreachable and will be removed.
+
+### Internal algorithms
+
+- the basic garbage collectoin algorithm is called mark-and-sweep
+
+- the garbage collector takes roots and “marks” (remembers) them.
+- then it visits and “marks” all references from them.
+- then it visits marked objects and marks their references. All visited objects are remembered, so as not to visit the same object twice in the future.
+- …and so on until every reachable (from the roots) references are visited.
+- all objects except marked ones are removed.
+
+![mark and sweep 1](./images/ms_1.png)
+![mark and sweep 2](./images/ms_2.png)
+![mark and sweep 3](./images/ms_3.png)
+![mark and sweep 4](./images/ms_4.png)
+
+- Javascript engines run a lot of optimizations to make the garbage collection process more efficient
+
+Some of the optimizations:
+
+- __Generational collection__ – objects are split into two sets: “new ones” and “old ones”. In typical code, many objects have a short life span: they appear, do their job and die fast, so it makes sense to track new objects and clear the memory from them if that’s the case. Those that survive for long enough, become “old” and are examined less often.
+
+- __Incremental collection__ – if there are many objects, and we try to walk and mark the whole object set at once, it may take some time and introduce visible delays in the execution. So the engine splits the whole set of existing objects into multiple parts. And then clear these parts one after another. There are many small garbage collections instead of a total one. That requires some extra bookkeeping between them to track changes, but we get many tiny delays instead of a big one.
+
+- __Idle-time collection__ – the garbage collector tries to run only while the CPU is idle, to reduce the possible effect on the execution.
+
+>[!IMPORTANT]
+>
+> I'M NOT SURE WHAT LINTER I'M USING BUT THIS FUCKASS LINTER THINKS ITS MORE STANDARD TO USE
+> UNDERSCORES FOR STRONG STYLE THAN ASTERISKS
+
+## Object methods, "this"
+
+- actions are represented in JavaScript by functions in properties.
+
+### method examples
+
+```javascript
+let user = {
+  name: "John",
+  age: 30
+};
+
+user.sayHi = function() {
+  alert("Hello!");
+};
+
+user.sayHi(); // Hello!
+```
+
+- a function that is a property of an object is called its method.
+
+- to use a pre-declared function as a method
+
+```javascript
+let user = {
+  // ...
+};
+
+// first, declare
+function sayHi() {
+  alert("Hello!");
+}
+
+// then add as a method
+user.sayHi = sayHi;
+
+user.sayHi(); // Hello!
+```
+
+- since we are writing our code using objects to represent entities, this is OOP, object oriented programming
+
+### method shorthand
+
+- we can omit using the function keyword when declaring a method in an object literal:
+
+```javascript
+
+// these objects do the same
+
+user = {
+  sayHi: function() {
+    alert("Hello");
+  }
+};
+
+// method shorthand looks better, right?
+user = {
+  sayHi() { // same as "sayHi: function(){...}"
+    alert("Hello");
+  }
+};
+```
+
+- there are subtle differences between the two syntaxes related to object inheritance but almost always the method shorthand is used in practice
+
+### "this" in methods
+
+- to access the object, a method can use the ```this``` keyword
+
+```javascript
+let user = {
+  name: "John",
+  age: 30,
+
+  sayHi() {
+    // "this" is the "current object"
+    alert(this.name);
+  }
+
+};
+
+user.sayHi(); // John
+```
+
+instead of ```this.name``` we could also write ```user.name```, but that would be less flexible. If we assign user to another variable, then ```user.name``` would not work anymore, while ```this.name``` would still work.
+
+### "this" is not bound
+
+- the value of ```this``` is evaluated based on context and can be used in any function
+
+```javascript
+let user = { name: "John" };
+let admin = { name: "Admin" };
+
+function sayHi() {
+  alert( this.name );
+}
+
+// use the same function in two objects
+user.f = sayHi;
+admin.f = sayHi;
+
+// these calls have different this
+// "this" inside the function is the object "before the dot"
+user.f(); // John  (this == user)
+admin.f(); // Admin  (this == admin)
+
+admin['f'](); // Admin (dot or square brackets access the method – doesn't matter)
+```
+
+[!NOTE]
+>
+> Calling without an object: this == undefined
+> We can even call the function without an object at all:
+
+```javascript
+ function sayHi() {
+  alert(this);
+}
+```
+
+> sayHi(); // undefined
+> In this case this is undefined in strict mode. If we try to access this.name, there will be an error.
+>
+> In non-strict mode the value of this in such case will be the global object (window in a browser, we’ll get to it later in the chapter Global object). This is a historical behavior that "use strict" fixes.
+>
+> Usually such call is a programming error. If there’s this inside a function, it expects to be called in an object context.
+
+### arrow functions have no "this"
+
+- arrow functions don't have their own this, if ```this``` is referenced then it's is taken from the outer normal function
+
+```javascript
+let user = {
+  firstName: "Ilya",
+  sayHi() {
+    let arrow = () => alert(this.firstName);
+    arrow();
+  }
+};
+
+user.sayHi(); // Ilya
+```
+
+### summary
+
+1. Functions that are stored in object properties are called “methods”.
+2. Methods allow objects to “act” like ```object.doSomething()```.
+3. Methods can reference the object as ```this```.
+4. The value of ```this``` is defined at run-time.
+5. When a function is declared, it may use ```this```, but that ```this``` has no value until the function is called.
+6. A function can be copied between objects.
+7. When a function is called in the “method” syntax: ```object.method()```, the value of ```this``` during the call is ```object```.
+
