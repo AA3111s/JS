@@ -8,7 +8,7 @@
 
 created with curly braces ```{…}``` with an optional list of properties. A property is a “key: value” pair, where ```key``` is a string (also called a “property name”), and ```value``` can be anything.
 
-![object key relation](./images/okr.png)
+![object key relation](../images/okr.png)
 
 #### Literals and properties
 
@@ -313,7 +313,7 @@ for (let code in codes) {
 
 - objects are stored and copied “by reference” unlike primitive values that are copied by their value
 
-![referencing as cabinet analogy](./images/raca.png)
+![referencing as cabinet analogy](../images/raca.png)
 
 - when an object variable is copied, the reference is copied, but the object itself is not duplicated
 
@@ -509,13 +509,13 @@ For instance, if there’s an object in a global variable, and that object has a
 
 - there’s a background process in the JS engine that is called garbage collector. It monitors all objects and removes those that have become unreachable.
 
-![simple example of garbage collector](./images/seogc.png)
+![simple example of garbage collector](../images/seogc.png)
 
 - if instead the object was referenced by two variables and one was set to ```null```, then the object would still have been reachable and thus not removed by the garbage collector
 
-![interlinked object example](./images/ioe.png)
+![interlinked object example](../images/ioe.png)
 
-![incoming outgoing reference example](./images/iore.png)
+![incoming outgoing reference example](../images/iore.png)
 
 #### Unreachable islands
 
@@ -541,10 +541,10 @@ family = null;
 - …and so on until every reachable (from the roots) references are visited.
 - all objects except marked ones are removed.
 
-![mark and sweep 1](./images/ms_1.png)
-![mark and sweep 2](./images/ms_2.png)
-![mark and sweep 3](./images/ms_3.png)
-![mark and sweep 4](./images/ms_4.png)
+![mark and sweep 1](../images/ms_1.png)
+![mark and sweep 2](../images/ms_2.png)
+![mark and sweep 3](../images/ms_3.png)
+![mark and sweep 4](../images/ms_4.png)
 
 - Javascript engines run a lot of optimizations to make the garbage collection process more efficient
 
@@ -715,3 +715,853 @@ user.sayHi(); // Ilya
 6. A function can be copied between objects.
 7. When a function is called in the “method” syntax: ```object.method()```, the value of ```this``` during the call is ```object```.
 
+## Constructor, operator "new"
+
+- when we need to create many objects of the same type, we can use a constructor function and the new operator
+
+- constructor functions technically are regular functions. There are two conventions though:
+
+1. They are named with capital letter first.
+2. They should be executed only with ```"new"``` operator.
+
+```javascript
+function User(name) {
+  this.name = name;
+  this.isAdmin = false;
+}
+
+let user = new User("Jack");
+
+alert(user.name); // Jack
+alert(user.isAdmin); // false
+```
+
+When a function is executed with new, it does the following steps:
+
+1. A new empty object is created and assigned to this.
+2. The function body executes. Usually it modifies this, adds new properties to it.
+3. The value of this is returned.
+
+In other words, ```new User(...)``` does something like:
+
+```javascript
+function User(name) {
+  // this = {};  (implicitly)
+
+  // add properties to this
+  this.name = name;
+  this.isAdmin = false;
+
+  // return this;  (implicitly)
+}
+// So let user = new User("Jack") gives the same result as:
+
+let user = {
+  name: "Jack",
+  isAdmin: false
+};
+```
+
+- to create other users now, we can just call ```new User("Ann"), new User("Alice")```
+
+- this being the main purpose of constructors, to implement reusable object creation code
+
+- any function except arrow functions can be used as a constructor, as arrow functions do not have ```this```
+
+- in case we have a multiline code block for creating a single complex object, it can be wrapped in an immediately called constructor function, like this:
+
+```javascript
+// create a function and immediately call it with new
+let user = new function() {
+  this.name = "John";
+  this.isAdmin = false;
+
+  // ...other code for user creation
+  // maybe complex logic and statements
+  // local variables etc
+};
+```
+
+### Constructor mode test: new.target
+
+> __ADVANCE TOPIC, RARELY USED__
+
+- we can check if a function is called with new by using the new.target property
+
+```javascript
+function User() {
+  alert(new.target);
+}
+
+// without "new":
+User(); // undefined
+
+// with "new":
+new User(); // function User { ... }
+<------------------------------------------------------>
+
+function User(name) {
+  if (!new.target) { // if you run me without new
+    return new User(name); // ...I will add new for you
+  }
+
+  this.name = name;
+}
+
+let john = User("John"); // redirects call to new User
+alert(john.name); // John
+```
+
+- This approach is sometimes used in libraries to make the syntax more flexible. So that people may call the function with or without ```new```, and it still works.
+
+- not a good thing to use everywhere though, because omitting new makes it less obvious what’s going on. With ```new``` we all know that the new object is being created.
+
+### Return from constructors
+
+- rare edge case in Js
+
+This screenshot covers a specific, rare edge case in JavaScript regarding __Constructor Functions__ (functions called with the `new` keyword).
+
+To understand this, we first need to remember how a constructor normally works, and then see how an explicit `return` statement completely hijacks that behavior.
+
+---
+
+The Normal Behavior (No `return`)
+
+Normally, when you use the `new` keyword with a function, JavaScript automatically does three things behind the scenes:
+
+1. It creates a brand-new empty object and assigns it to `this`.
+2. It runs your code (like `this.name = "John"`), adding properties to that new object.
+3. __It automatically returns that `this` object at the end.__ You don't have to type `return`.
+
+---
+
+The Exception: What happens if you add a `return`?
+
+If you force a `return` statement inside a constructor, JavaScript follows a very strict "override" rule based on __what__ you are returning:
+
+1. __If you return an OBJECT:__ The constructor completely throws away `this` and returns your object instead.
+2. __If you return a PRIMITIVE (or empty `return`):__ The constructor completely ignores your return statement and returns `this` anyway.
+
+Let's look at the two examples from your screenshot to see this rule in action.
+
+---
+
+### Example 1: Returning an Object (The Hijack)
+
+```javascript
+function BigUser() {
+  this.name = "John"; // 1. This happens...
+  return { name: "Godzilla" }; // 2. But then this overrides it!
+}
+
+alert( new BigUser().name ); // ➔ "Godzilla"
+
+```
+
+- __What's happening:__ JavaScript starts building an object with the name `"John"`.
+- __The Twist:__ On line 4, it hits `return { name: "Godzilla" };`. Because `{ name: "Godzilla" }` is an __object__, JavaScript essentially says: *"Okay, change of plans! Throw away the 'John' object we were building, and output this 'Godzilla' object instead."*
+
+---
+
+### Example 2: Returning an Empty/Primitive Value (The Ignore)
+
+```javascript
+function SmallUser() {
+  this.name = "John";
+  return; // ➔ Ignored! (or returning a primitive like 5, "hello", true)
+}
+
+alert( new SmallUser().name ); // ➔ "John"
+```
+
+- __What's happening:__ JavaScript builds the object with the name `"John"`.
+- __The Twist:__ It hits an empty `return;` (which is technically returning `undefined`). Because `undefined` is a __primitive__ (not an object), JavaScript completely ignores it. It proceeds with its default behavior and returns the original `this` object containing `"John"`.
+
+---
+
+__Summary Table:__
+
+| If the constructor returns... | What actually gets outputted by `new`? |
+| --- | --- |
+| __An Object__ (e.g., `{...}`, `[]`, `function()`) | __The returned object__ (`this` is entirely ignored). |
+| __A Primitive__ (e.g., `string`, `number`, `boolean`, `undefined`) | __The `this` object__ (the return statement is completely ignored). |
+
+> __Note:__ As the text mentions at the bottom, you will almost *never* write a `return` statement inside a constructor function in real-world programming. It's bad practice because it confuses other developers. JavaScript just has this rule for the sake of completeness!
+
+- parenthesis after ```new``` can be ignored if there are no arguments
+
+```javascript
+let user = new User; // <-- no parentheses
+// same as
+let user = new User();
+```
+
+## Methods in constructor functions
+
+```new User(name)``` below creates an object with the given ```name``` and the method ```sayHi```:
+
+```javascript
+function User(name) {
+  this.name = name;
+
+  this.sayHi = function() {
+    alert( "My name is: " + this.name );
+  };
+}
+
+let john = new User("John");
+
+john.sayHi(); // My name is: John
+
+/*
+john = {
+   name: "John",
+   sayHi: function() { ... }
+}
+*/
+```
+
+## Optional chaining "?."
+
+- recent addition to the language, old browsers may need a polyfill
+
+- a safe way to access nested object properties, even if an intermediate property doesn’t exist.
+
+let’s say we have ```user``` objects that hold the information about our users.
+
+Most of our users have addresses in ```user.address``` property, with the street ```user.address.street```, but some did not provide them.
+
+In such case, when we attempt to get ```user.address.street```, and the user happens to be without an address, we get an error:
+
+```javascript
+let user = {}; // a user without "address" property
+
+alert(user.address.street); // Error!
+```
+
+- that is because the way Js works, it first evaluates ```user.address```, and since it’s undefined, it can’t read the property street of undefined, and throws an error
+
+- In Web development, we can get an object that corresponds to a web page element using a special method call, such as ```document.querySelector('.elem')```, and it returns null when there’s no such element.
+
+```javascript
+// document.querySelector('.elem') is null if there's no element
+let html = document.querySelector('.elem').innerHTML; // error if it's null
+```
+
+Once again, if the element doesn’t exist, we’ll get an error accessing ```.innerHTML``` property of ```null```. And in some cases, when the absence of the element is normal, we’d like to avoid the error and just accept ```html = null``` as the result.
+
+- the obvious solution to this could be using the if statement to check if the element exists before accessing its property but that tends to add a lot of extra code and nesting, code repetition
+
+```javascript
+let user = {};
+
+alert(user.address ? user.address.street : undefined);
+<------------------------------------------------------>
+let html = document.querySelector('.elem') ? document.querySelector('.elem').innerHTML : null;
+
+// a little better way to execute this could be using &&
+
+let user = {}; // user has no address
+
+alert( user.address && user.address.street && user.address.street.name ); // undefined (no error)
+```
+
+### Optional chaining
+
+- ```?.``` operator stops the evalutation if the value before it is undefined or null and returns undefined
+
+In other words, ```value?.prop```:
+
+- works as ```value.prop```, if value exists,
+- otherwise (when value is undefined/null) it returns undefined
+
+```javascript
+let user = {}; // user has no address
+
+alert( user?.address?.street ); // undefined (no error)
+
+<------------------------------------------------------>
+
+let html = document.querySelector('.elem')?.innerHTML; // will be undefined, if there's no element
+
+
+// Reading the address with user?.address works even if user object doesn’t exist:
+
+let user = null;
+
+alert( user?.address ); // undefined
+alert( user?.address.street ); // undefined
+```
+
+>[!IMPORTANT]
+>
+> Please note: the ?. syntax makes optional the value before it, but not any further.
+>
+> E.g. in user?.address.street.name the ?. allows user to safely be null/undefined (and returns undefined in that case), but that’s only for user. Further properties are accessed in a regular way. If we want some of them to be optional, then we’ll need to replace more . with ?..
+>
+> <------------------------------------------------------>
+>
+> Don’t overuse the optional chaining
+> We should use ?. only where it’s ok that something doesn’t exist.
+>
+> For example, if according to our code logic user object must exist, but address is optional, then we should write user.address?.street, but not user?.address?.street.
+>
+> Then, if user happens to be undefined, we’ll see a programming error about it and fix it. Otherwise, if we overuse ?., coding errors can be silenced where not appropriate, and become more difficult to debug.
+>
+> <------------------------------------------------------>
+>
+> The variable before ?. must be declared
+> If there’s no variable user at all, then user?.anything triggers an error:
+>
+> // ReferenceError: user is not defined
+> user?.address;
+> The variable must be declared (e.g. let/const/var user or as a function parameter). The optional chaining works only for declared variables.
+
+### Short circuiting
+
+- the ?. immediately stops __(“short-circuits”)__ the evaluation if the left part doesn’t exist.
+
+#### Other variants: ?.() and ?.[]
+
+- ?. is not an operator, but a special syntax construct, that also works with functions and square brackets
+
+- eg. ?.() could be used to call a function that may not exist
+
+```javascript
+let userAdmin = {
+  admin() {
+    alert("I am admin");
+  }
+};
+
+let userGuest = {};
+
+userAdmin.admin?.(); // I am admin
+
+userGuest.admin?.(); // nothing happens (no such method)
+```
+
+Here, in both lines we first use the dot (userAdmin.admin) to get admin property, because we assume that the user object exists, so it’s safe read from it.
+
+Then ?.() checks the left part: if the admin function exists, then it runs (that’s so for userAdmin). Otherwise (for userGuest) the evaluation stops without errors.
+
+- The ?.[] syntax also works, if we’d like to use brackets [] to access properties instead of dot .. Similar to previous cases, it allows to safely read a property from an object that may not exist.
+
+```javascript
+let key = "firstName";
+
+let user1 = {
+  firstName: "John"
+};
+
+let user2 = null;
+
+alert( user1?.[key] ); // John
+alert( user2?.[key] ); // undefined
+```
+
+Also we can use ?. with delete:
+
+```javascript
+delete user?.name; // delete user.name if user exists
+```
+
+>[!NOTE]
+>
+> We can use ?. for safe reading and deleting, but not writing
+> The optional chaining ?. has no use on the left side of an assignment.
+>
+> For example:
+>
+> let user = null;
+>
+> user?.name = "John"; // Error, doesn't work
+> // because it evaluates to: undefined = "John"
+
+![summary of optional chaining](../images/soc.png)
+
+## Symbol type
+
+By specification, only two primitive types may serve as object property keys:
+
+- string type, or
+- symbol type
+
+Otherwise, if one uses another type, such as number, it’s autoconverted to string. So that obj[1] is the same as obj["1"], and obj[true] is the same as obj["true"].
+
+### Symbols
+
+- represents a unique identifier
+- created using the ```Symbol()``` function
+
+- we can give symbols a description (also called a symbol name), mostly useful for debugging purposes
+
+```javascript
+// id is a symbol with the description "id"
+let id = Symbol("id");
+```
+
+- symbols are unique, even if they have the same description, they are different values. The description is just a label that doesn't affect anything.
+
+```javascript
+let id1 = Symbol("id");
+let id2 = Symbol("id");
+
+alert(id1 == id2); // false
+```
+
+>[!NOTE]
+>
+> Symbols don’t auto-convert to a string
+> Most values in JavaScript support implicit conversion to a string. For instance, we can alert almost any value, and it will work. Symbols are special. They don’t auto-convert.
+>
+> For instance, this alert will show an error:
+
+```javascript
+ let id = Symbol("id");
+alert(id); // TypeError: Cannot convert a Symbol value to a string
+
+// That’s a “language guard” against messing up, because strings and symbols are fundamentally different and should not accidentally convert one into another.
+
+// If we really want to show a symbol, we need to explicitly call .toString() on it, like here:
+
+ let id = Symbol("id");
+alert(id.toString()); // Symbol(id), now it works
+
+// Or get symbol.description property to show the description only:
+
+ let id = Symbol("id");
+alert(id.description); // id
+```
+
+### Hidden properties
+
+- Symbols allow us to create “hidden” properties of an object, that no other part of code can accidentally access or overwrite.
+
+```javascript
+let user = { // belongs to another code
+  name: "John"
+};
+
+let id = Symbol("id");
+
+user[id] = 1;
+
+alert( user[id] ); // we can access the data using the symbol as the key
+alert( user["id"] ); // undefined, the "id" property is not created
+```
+
+> What’s the benefit of using Symbol("id") over a string "id"?
+
+As ```user``` objects belong to another codebase, it’s unsafe to add fields to them, since we might affect pre-defined behavior in that other codebase. However, symbols cannot be accessed accidentally. The third-party code won’t be aware of newly defined symbols, so it’s safe to add symbols to the ```user``` objects.
+
+Also, imagine that another script wants to have its own identifier inside ```user```, for its own purposes.
+
+Then that script can create its own ```Symbol("id")```, like this:
+
+```javascript
+// ...
+let id = Symbol("id");
+
+user[id] = "Their id value";
+```
+
+There will be no conflict between our and their identifiers, because symbols are always different, even if they have the same name.
+
+…But if we used a string ```"id"``` instead of a symbol for the same purpose, then there would be a conflict:
+
+```javascript
+let user = { name: "John" };
+
+// Our script uses "id" property
+user.id = "Our id value";
+
+// ...Another script also wants "id" for its purposes...
+
+user.id = "Their id value"
+// Boom! overwritten by another script!
+```
+
+#### Symbols in an object literal
+
+- to use a symbol in an object literal ```{...}```, we need square brackets around it
+
+```javascript
+let id = Symbol("id");
+
+let user = {
+  name: "John",
+  [id]: 123 // not "id": 123
+};
+```
+
+#### Symbols are skipped by for..in
+
+- symbolic properties do not participate in for..in loops, they are skipped
+
+```javascript
+let id = Symbol("id");
+let user = {
+  name: "John",
+  age: 30,
+  [id]: 123
+};
+
+for (let key in user) alert(key); // name, age (no symbols)
+
+// the direct access by the symbol works
+alert( "Direct: " + user[id] ); // Direct: 123
+```
+
+```Object.keys(user)``` also ignores them. That’s a part of the general “hiding symbolic properties” principle. If another script or a library loops over our object, it won’t unexpectedly access a symbolic property.
+
+In contrast, ```Object.assign``` copies both string and symbol properties:
+
+```javascript
+let id = Symbol("id");
+let user = {
+  [id]: 123
+};
+
+let clone = Object.assign({}, user);
+
+alert( clone[id] ); // 123
+```
+
+There’s no paradox here. That’s by design. The idea is that when we clone an object or merge objects, we usually want all properties to be copied (including symbols like id).
+
+### Global symbols
+
+- same entity-type symbols that are used in the code to represent the same property can be stored in a global symbol registry, it guarantees that repeated accesses by the same name return exactly the same symbol
+
+In order to read (create if absent) a symbol from the registry, use ```Symbol.for(key)```.
+
+That call checks the global registry, and if there’s a symbol described as ```key```, then returns it, otherwise creates a new symbol ```Symbol(key)``` and stores it in the registry by the given ```key```.
+
+```javascript
+// read from the global registry
+let id = Symbol.for("id"); // if the symbol did not exist, it is created
+
+// read it again (maybe from another part of the code)
+let idAgain = Symbol.for("id");
+
+// the same symbol
+alert( id === idAgain ); // true
+```
+
+- symbols inside the registry are called global symbols
+
+#### Symbol.keyFor
+
+- returns a name by global symbol
+
+```javascript
+// get symbol by name
+let sym = Symbol.for("name");
+let sym2 = Symbol.for("id");
+
+// get name by symbol
+alert( Symbol.keyFor(sym) ); // name
+alert( Symbol.keyFor(sym2) ); // id
+```
+
+The ```Symbol.keyFor``` internally uses the global symbol registry to look up the key for the symbol. So it doesn’t work for non-global symbols. If the symbol is not global, it won’t be able to find it and returns undefined.
+
+That said, all symbols have the ```description```property.
+
+For instance:
+
+```javascript
+ let globalSymbol = Symbol.for("name");
+let localSymbol = Symbol("name");
+
+alert( Symbol.keyFor(globalSymbol) ); // name, global symbol
+alert( Symbol.keyFor(localSymbol) ); // undefined, not global
+
+alert( localSymbol.description ); // name
+```
+
+<!-- kinda can't understand this shit -->
+
+### System symbols
+
+- symbols that Js uses internally that can be used to fine-tune various aspects of our objects
+
+- Symbol.hasInstance
+- Symbol.isConcatSpreadable
+- Symbol.iterator
+- Symbol.toPrimitive
+- …and so on.
+
+![summary for symbols](../images/sfs.png)
+
+## Object to primitive conversion
+
+- any math operation on objects will not result in another object
+
+### Conversion rules
+
+1. There’s no conversion to boolean. All objects are ```true``` in a boolean context, as simple as that. There exist only numeric and string conversions.
+
+2. The numeric conversion happens when we subtract objects or apply mathematical functions. For instance, ```Date``` objects can be subtracted, and the result of ```date1 - date2``` is the time difference between two dates.
+
+3. As for the string conversion – it usually happens when we output an object with ```alert(obj)``` and in similar contexts.
+
+### Hints
+
+- there are three variants of type conversion, that happen in various situations called hints
+
+"string" – for string conversion
+
+```javascript
+alert(obj); // hint: "string"
+
+// using object as a property key
+anotherObj[obj] = 123;
+```
+
+"number" – for numeric conversion
+
+```javascript
+// explicit conversion
+let num = Number(obj);
+
+// maths (except binary plus)
+let n = +obj; // unary plus
+let delta = date1 - date2;
+
+// less/greater comparison
+let greater = user1 > user2;
+```
+
+"default" – for both conversions, depending on the situation
+
+- rare case when the operator is "not sure" what to expect
+
+- eg, binary plus ```+``` can work both with strings (concatenates them) and numbers (adds them). So if a binary plus gets an object as an argument, it uses the ```"default"``` hint to convert it.
+
+```javascript
+// binary plus uses the "default" hint
+let total = obj1 + obj2;
+
+// obj == number uses the "default" hint
+if (user == 1) { ... };
+```
+
+The greater and less comparison operators, such as ```<``` ```>```, can work with both strings and numbers too. Still, they use the ```"number"``` hint, not ```"default"```. That’s for historical reasons.
+
+> To do the conversion, JavaScript tries to find and call three object methods:
+
+1. Call ```obj[Symbol.toPrimitive](hint)``` – the method with the symbolic key ```Symbol.toPrimitive``` (system symbol), if such method exists,
+
+2. Otherwise if hint is ```"string"```
+try calling ```obj.toString()``` or ```obj.valueOf()```, whatever exists.
+
+3. Otherwise if hint is ```"number"``` or ```"default"```
+try calling ```obj.valueOf()``` or ```obj.toString()```, whatever exists.
+
+### Symbol.toPrimitive
+
+- used to name the conversion method
+
+```javascript
+obj[Symbol.toPrimitive] = function(hint) {
+  // here goes the code to convert this object to a primitive
+  // it must return a primitive value
+  // hint = one of "string", "number", "default"
+};
+```
+
+If the method Symbol.toPrimitive exists, it’s used for all hints, and no more methods are needed.
+
+For instance, here user object implements it:
+
+```javascript
+ let user = {
+  name: "John",
+  money: 1000,
+
+  [Symbol.toPrimitive](hint) {
+    alert(`hint: ${hint}`);
+    return hint == "string" ? `{name: "${this.name}"}` : this.money;
+  }
+};
+
+// conversions demo:
+alert(user); // hint: string -> {name: "John"}
+alert(+user); // hint: number -> 1000
+alert(user + 500); // hint: default -> 1500
+```
+
+As we can see from the code, user becomes a self-descriptive string or a money amount, depending on the conversion. The single method ```user[Symbol.toPrimitive]``` handles all conversion cases.
+
+### toString/valueOf
+
+![ok?_1](../images/okq_1.png)
+![ok?_2](../images/okq_2.png)
+
+---
+
+## The Big Picture: What is happening here?
+
+In JavaScript, you often try to use an __object__ (like `{name: "John"}`) in a place where a __primitive__ value (like a string or a number) is expected.
+
+For example:
+
+- `alert(user)` $\rightarrow$ You are trying to print the user object as a __string__.
+- `user + 500` or `+user` $\rightarrow$ You are trying to math-calculate with the object as a __number__.
+
+JavaScript doesn't just crash when you do this. Instead, it tries to automatically convert your object into a string or a number. To figure out *how* to convert it, JavaScript looks for a __"hint"__ of what type is needed, and then looks for specific methods inside your object to do the job.
+
+---
+
+## The Two Methods: `toString` and `valueOf`
+
+Before modern JavaScript added newer features like `Symbol.toPrimitive`, JavaScript relied on two old-school methods to handle these conversions:
+
+1. __`toString()`__: This method's job is to return a __string__ representation of the object.
+2. __`valueOf()`__: This method's job is to return a __numeric__ (or basic primitive) representation of the object.
+
+### The Priority Rules
+
+When JavaScript needs a primitive, it follows a specific order depending on what it needs:
+
+- __If it wants a "string":__ It calls `toString()`. If that fails (or doesn't exist), it tries `valueOf()`.
+- __If it wants a "number" (math):__ It calls `valueOf()`. If that fails, it tries `toString()`.
+
+---
+
+## Default Behavior (Why you see `[object Object]`)
+
+By default, every object you create in JavaScript already has built-in versions of these two methods.
+
+If you don't write your own, here is what JavaScript does out-of-the-box:
+
+- The default `toString()` just gives you the text `"[object Object]"`.
+- The default `valueOf()` just returns the object itself (which JavaScript ignores because it's not a primitive).
+
+```javascript
+let user = { name: "John" };
+
+alert(user); // Output: "[object Object]" 
+// (Because JavaScript wanted a string, called the default toString(), and got "[object Object]")
+
+```
+
+---
+
+## Customizing the Conversion (The Code Examples)
+
+The code snippets you shared show how we can __override__ those default behaviors so the object behaves intelligently when used in math or strings.
+
+### Example 1: Handling Strings and Numbers separately
+
+```javascript
+let user = {
+  name: "John",
+  money: 1000,
+
+  // JavaScript triggers this when it needs text/string
+  toString() {
+    return `{name: "${this.name}"}`;
+  },
+
+  // JavaScript triggers this when it needs math/numbers
+  valueOf() {
+    return this.money;
+  }
+};
+
+alert(user);       // Output: {name: "John"}  <- Triggered toString()
+alert(+user);      // Output: 1000            <- Triggered valueOf() (the '+' forces it to a number)
+alert(user + 500); // Output: 1500            <- Triggered valueOf() (1000 + 500)
+
+```
+
+### Example 2: The "Catch-All" shortcut
+
+If you only implement `toString()`, JavaScript will use it for __everything__ if `valueOf` isn't giving a valid primitive.
+
+```javascript
+let user = {
+  name: "John",
+
+  toString() {
+    return this.name; // returns "John"
+  }
+};
+
+alert(user);       // Output: "John" (Wanted a string)
+alert(user + 500); // Output: "John500" 
+// (Wanted a number for math, looked for valueOf, didn't find a useful one, 
+// fell back to toString(), got "John", and then glued "John" + 500 together).
+
+```
+
+---
+
+## Summary Cheat Sheet
+
+> - __Why does this exist?__ To let you decide what happens when an object is treated like a string or a number.
+> - __`toString()`__ $\rightarrow$ High priority for __text__ conversion.
+> - __`valueOf()`__ $\rightarrow$ High priority for __math__ conversion.
+> - __The Golden Rule:__ Both methods *must* return a primitive value (like a string, number, or boolean), not another object. If they return an object, JavaScript just ignores them.
+>
+>
+
+---
+
+> [!NOTE]
+
+A conversion can return any primitive type
+
+The important thing to know about all primitive-conversion methods is that they do not necessarily return the “hinted” primitive.
+
+There is no control whether toString returns exactly a string, or whether Symbol.toPrimitive method returns a number for the hint "number".
+
+The only mandatory thing: these methods must return a primitive, not an object.
+
+Historical notes
+For historical reasons, if toString or valueOf returns an object, there’s no error, but such value is ignored (like if the method didn’t exist). That’s because in ancient times there was no good “error” concept in JavaScript.
+
+In contrast, Symbol.toPrimitive is stricter, it must return a primitive, otherwise there will be an error.
+
+---
+
+### Further conversions
+
+If we pass an object as an argument, then there are two stages of calculations:
+
+1. The object is converted to a primitive (using the rules described above).
+2. If necessary for further calculations, the resulting primitive is also converted.
+
+For instance:
+
+```javascript
+ let obj = {
+  // toString handles all conversions in the absence of other methods
+  toString() {
+    return "2";
+  }
+};
+
+alert(obj * 2); // 4, object converted to primitive "2", then multiplication made it a number
+```
+
+The multiplication ```obj * 2``` first converts the object to primitive (that’s a string ```"2"```).
+Then ```"2" * 2``` becomes ```2 * 2``` (the string is converted to number).
+
+Binary plus will concatenate strings in the same situation, as it gladly accepts a string:
+
+```javascript
+ let obj = {
+  toString() {
+    return "2";
+  }
+};
+
+alert(obj + 2); // "22" ("2" + 2), conversion to primitive returned a string => concatenation
+```
+
+![summary of conversion rules](../images/socr.png)

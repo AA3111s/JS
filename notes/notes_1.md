@@ -204,7 +204,7 @@ let age = Number("an arbitrary string instead of a number");
 alert(age); // NaN, conversion failed
 ```
 
-![numeric conversion rules table](./images/ncrt.png "numeric conversion rules table")
+![numeric conversion rules table](../images/ncrt.png "numeric conversion rules table")
 
 ```javascript
 alert( Number("   123   ") ); // 123

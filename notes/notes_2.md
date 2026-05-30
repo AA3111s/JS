@@ -18,7 +18,7 @@ function hello(name) {
 
 Such command works only when the development tools are open, otherwise the browser ignores it.
 
-![Chrome Dev Tools](./images/cdt.png)
+![Chrome Dev Tools](../images/cdt.png)
 
 1. Watch – shows current values for any expressions.
 
@@ -42,7 +42,7 @@ Such command works only when the development tools are open, otherwise the brows
 
     Resumes the execution. If there are no additional breakpoints, then the execution just continues and the debugger loses control.
 
-![Icons reference for below](./images/icons.png)
+![Icons reference for below](../images/icons.png)
 
 - “Step”: run the next command, hotkey F9.
     Run the next statement. If we click it now, alert will be shown.
@@ -76,7 +76,7 @@ Such command works only when the development tools are open, otherwise the brows
 
 ### Coding Style
 
-![Cheatsheet for code style](./images/srcs.png)
+![Cheatsheet for code style](../images/srcs.png)
 
 ```javascript
 // backtick quotes ` allow to split the string into multiple lines
@@ -260,7 +260,7 @@ describe("pow", function() {
 
 - the above is a crazy piece of code.
 
-![Result of code implementation](./images/roci.png)
+![Result of code implementation](../images/roci.png)
 
 #### Nested describe
 
@@ -290,7 +290,7 @@ describe("pow", function() {
 });
 ```
 
-![describe for subgroups](./images/dfs.png)
+![describe for subgroups](../images/dfs.png)
 
 #### before/after and beforeEach/afterEach
 
@@ -382,7 +382,7 @@ function pow(x, n) {
 }
 ```
 
-![final implementation of pow](./images/fiop.png)
+![final implementation of pow](../images/fiop.png)
 
 >IMPORTANT
 >
