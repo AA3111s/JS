@@ -33,19 +33,15 @@ alert(guestList); // a list of guests, multiple line
 
 ## String length
 
-```javascript 
+```javascript
 alert( `My\n`.length ); // 3
 ```
 
-> length is a property
->
-> People with a background in some other languages sometimes mistype by calling str.length() instead of just str.length. That doesn’t work.
->
-> Please note that str.length is a numeric property, not a function. There is no need to add parenthesis after it. Not .length(), but .length.
+> .length is just a numeric property of the string, not a function, out of habit maybe declared as str.length() which is incorrect.
 
 ## Accessing characters
 
-- to get a character at position ```pos```, use square brackets ```[pos]``` or call the method ```str.at(pos)```. The first character starts from the zero position:
+- to get a character at position ```pos```, use square brackets ```[pos]``` or call the method ```str.at(pos)```. 0 indexed.
 
 ```javascript
 let str = `Hello`;
@@ -91,7 +87,7 @@ str = 'h' + str[1]; // replace the string
 alert( str ); // hi
 ```
 
-## Changing the case
+## Changing the case (methods)
 
 ```javascript
 alert( 'Interface'.toUpperCase() ); // INTERFACE
@@ -159,3 +155,121 @@ while ((pos = str.indexOf(target, pos + 1)) != -1) {
   - There is also a similar method str.lastIndexOf(substr, position) that searches from the end of a string to its beginning.
 
   - It would list the occurrences in the reverse order.
+
+- the indexOf can produce errors with if codeblock as it returns 0 for the first position which is falsy, so it is better to actually check for -1
+
+```javascript
+let str = "Widget with id";
+if (str.indexOf("Widget") != -1) {
+  alert( "Found it!" );
+}
+```
+
+### includes, startsWith, endsWith
+
+- str.includes(substr, pos) – returns true if the substring substr is found in str at position pos or later
+- the other two functions do exactly as their names suggest
+
+```javascript
+alert( "Widget with id".includes("Widget") ); // true
+
+alert( "Hello".includes("Bye") ); // false
+
+alert( "Widget".includes("id") ); // true
+alert( "Widget".includes("id", 3) ); // false, from position 3 there is no "id"
+
+alert( "Widget".startsWith("Wid") ); // true, "Widget" starts with "Wid"
+alert( "Widget".endsWith("get") ); // true, "Widget" ends with "get"
+```
+
+## Getting a substring
+
+- 3 methods to get a substring: str.slice(start [, end]), str.substring(start [, end]), and str.substr(start [, length])
+
+### str.slice(start [, end])
+
+- returns the part of the string from start to end (not including end). Both start and end can be negative, in that case position from the end of the string is assumed and with no 2nd argument it goes until the end of the string.
+
+```javascript
+let str = "stringify";
+alert( str.slice(0, 5) ); // 'strin', the substring from 0 to 5 (not including 5)
+alert( str.slice(0, 1) ); // 's', from 0 to 1, but not including 1, so only character at 0
+
+let str = "stringify";
+alert( str.slice(2) ); // 'ringify', from the 2nd position till the end
+
+let str = "stringify";
+
+// start at the 4th position from the right, end at the 1st from the right
+alert( str.slice(-4, -1) ); // 'gif'
+```
+
+### str.substring(start [, end])
+
+- returns the string between start and end (not including end). The difference from slice is that substring allows start to be greater than end, in that case it swaps them
+- it does not support negative indexes, they are treated as 0
+
+```javascript
+let str = "stringify";
+
+// these are same for substring
+alert( str.substring(2, 6) ); // "ring"
+alert( str.substring(6, 2) ); // "ring"
+
+// ...but not for slice:
+alert( str.slice(2, 6) ); // "ring" (the same)
+alert( str.slice(6, 2) ); // "" (an empty string)
+```
+
+### str.substr(start [, length])
+
+- returns a substring starting from ```start``` of the given ```length```
+- the first argument may be negative, then it counts from the end of the string, if the second argument is negative, it is treated as 0
+
+```javascript
+let str = "stringify";
+alert( str.substr(2, 4) ); // 'ring', from the 2nd position get 4 characters
+
+let str = "stringify";
+alert( str.substr(-4, 2) ); // 'gi', from the 4th position get 2 characters
+```
+
+## Comparing strings
+
+- strings are compared letter by letter in the lexicographical order
+- the comparison is case-sensitive, so "a" < "A" < "B" < "b"
+
+```javascript
+alert( 'a' > 'Z' ); // true
+alert( 'Österreich' > 'Zealand' ); // true
+```
+
+- since the strings in JS are encoded in UTF-16, the comparison is based on the Unicode code points of the characters
+
+- str.codePointAt(pos)
+  - returns the code of the character at position pos
+
+- string.fromCodePoint(code)
+  - does the opposite, creates a string character by its code
+
+```javascript
+// different case letters have different codes
+alert( "Z".codePointAt(0) ); // 90
+alert( "z".codePointAt(0) ); // 122
+alert( "z".codePointAt(0).toString(16) ); // 7a (if we need a hexadecimal value)
+
+alert( String.fromCodePoint(90) ); // Z
+alert( String.fromCodePoint(0x5a) ); // Z (we can also use a hex value as an argument)
+
+let str = '';
+
+for (let i = 65; i <= 220; i++) {
+  str += String.fromCodePoint(i);
+}
+alert( str );
+// Output:
+// ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+// ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜ
+```
+
+![correct compare and summary](../../images/ccas.png)
